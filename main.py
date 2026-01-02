@@ -17,6 +17,10 @@ CLIENT = InferenceHTTPClient(
 )
 MODEL_ID = "dark-circle-wj25f/1"
 
+@app.get("/")
+async def root():
+    return {"message": "Dark Circle Detection API is Running!", "docs": "/docs"}
+
 @app.post("/analyze_and_show")
 async def analyze_and_show(file: UploadFile = File(...)):
     contents = await file.read()
