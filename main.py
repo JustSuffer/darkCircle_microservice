@@ -7,9 +7,13 @@ import uuid
 
 app = FastAPI()
 
+# GÜVENLİK GÜNCELLEMESİ: API Key artık sistemden okunuyor.
+# Eğer sistemde anahtar yoksa varsayılan olarak mevcut anahtarını kullanır (Lokal test için).
+ROBOFLOW_API_KEY = os.getenv("ROBOFLOW_API_KEY", "zG3akc4R6w2IEhak3GyS")
+
 CLIENT = InferenceHTTPClient(
     api_url="https://serverless.roboflow.com",
-    api_key="zG3akc4R6w2IEhak3GyS"
+    api_key=ROBOFLOW_API_KEY
 )
 MODEL_ID = "dark-circle-wj25f/1"
 
@@ -40,29 +44,24 @@ async def analyze_and_show(file: UploadFile = File(...)):
             x, y, w, h = int(pred['x']), int(pred['y']), int(pred['width']), int(pred['height'])
             x1, y1, x2, y2 = int(x - w / 2), int(y - h / 2), int(x + w / 2), int(y + h / 2)
             
-            color = (59, 166, 73) # Roboflow Yeşili
+            color = (59, 166, 73)
             cv2.rectangle(image_combined, (x1, y1), (x2, y2), color, 2)
 
-            # --- TÜM ETİKETLERİ ALTA ALAN MANTIK ---
             label = f"{pred['confidence']:.1%}"
             font = cv2.FONT_HERSHEY_SIMPLEX
             font_scale = 0.5
             thickness = 1
             (label_w, label_h), baseline = cv2.getTextSize(label, font, font_scale, thickness)
 
-            # Yazıyı her zaman kutunun altına (y2) yerleştiriyoruz. 
-            # Eğer resmin en altına çok yakınsa (taşma varsa) içeriye (y2 - 5) alıyoruz.
             text_y = y2 + label_h + 10
             if text_y > image.shape[0]:
                 text_y = y2 - 5
 
-            # Yazı arkasına siyah arka plan (Okunabilirlik için)
             cv2.rectangle(image_combined, 
                           (x1, text_y - label_h - 5), 
                           (x1 + label_w, text_y + baseline - 5), 
                           (0, 0, 0), -1)
             
-            # Yazıyı ekle
             cv2.putText(image_combined, label, (x1, text_y - 5), font, font_scale, color, thickness, cv2.LINE_AA)
 
         _, buffer = cv2.imencode('.jpg', image_combined)
