@@ -7,8 +7,7 @@ import uuid
 
 app = FastAPI()
 
-# GÜVENLİK GÜNCELLEMESİ: API Key artık sistemden okunuyor.
-# Eğer sistemde anahtar yoksa varsayılan olarak mevcut anahtarını kullanır (Lokal test için).
+
 ROBOFLOW_API_KEY = os.getenv("ROBOFLOW_API_KEY", "zG3akc4R6w2IEhak3GyS")
 
 CLIENT = InferenceHTTPClient(
@@ -34,7 +33,6 @@ async def analyze_and_show(file: UploadFile = File(...)):
         result = CLIENT.infer(temp_filename, model_id=MODEL_ID)
         predictions = result['predictions']
 
-        # 1. Overlay (Karartma) Katmanı
         overlay = image.copy()
         for pred in predictions:
             x, y, w, h = int(pred['x']), int(pred['y']), int(pred['width']), int(pred['height'])
@@ -43,7 +41,7 @@ async def analyze_and_show(file: UploadFile = File(...)):
 
         image_combined = cv2.addWeighted(overlay, 0.4, image, 0.6, 0)
 
-        # 2. Dinamik Yazı ve Kutu Çizimi
+
         for pred in predictions:
             x, y, w, h = int(pred['x']), int(pred['y']), int(pred['width']), int(pred['height'])
             x1, y1, x2, y2 = int(x - w / 2), int(y - h / 2), int(x + w / 2), int(y + h / 2)
