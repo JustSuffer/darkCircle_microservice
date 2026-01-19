@@ -41,30 +41,35 @@ async def analyze_and_show(file: UploadFile = File(...)):
 
         image_combined = cv2.addWeighted(overlay, 0.4, image, 0.6, 0)
 
+        height, width = image.shape[:2]
+        base_width = 800.0
+        font_scale = max(0.5, min(2.5, width / base_width))
+        thickness = max(1, int(round(font_scale * 2)))
+        pad = max(4, int(round(6 * font_scale)))
 
         for pred in predictions:
             x, y, w, h = int(pred['x']), int(pred['y']), int(pred['width']), int(pred['height'])
             x1, y1, x2, y2 = int(x - w / 2), int(y - h / 2), int(x + w / 2), int(y + h / 2)
-            
+
             color = (59, 166, 73)
             cv2.rectangle(image_combined, (x1, y1), (x2, y2), color, 2)
 
             label = f"{pred['confidence']:.1%}"
             font = cv2.FONT_HERSHEY_SIMPLEX
-            font_scale = 0.5
-            thickness = 1
             (label_w, label_h), baseline = cv2.getTextSize(label, font, font_scale, thickness)
 
-            text_y = y2 + label_h + 10
-            if text_y > image.shape[0]:
-                text_y = y2 - 5
+            text_y = y2 + label_h + pad
+            if text_y > height - pad:
+                text_y = max(label_h + pad, y1 - pad)
 
-            cv2.rectangle(image_combined, 
-                          (x1, text_y - label_h - 5), 
-                          (x1 + label_w, text_y + baseline - 5), 
-                          (0, 0, 0), -1)
-            
-            cv2.putText(image_combined, label, (x1, text_y - 5), font, font_scale, color, thickness, cv2.LINE_AA)
+            text_x = max(0, x1)
+            bg_x1 = max(0, x1 - pad)
+            bg_y1 = max(0, text_y - label_h - pad)
+            bg_x2 = min(width - 1, x1 + label_w + pad)
+            bg_y2 = min(height - 1, text_y + baseline + pad)
+
+            cv2.rectangle(image_combined, (bg_x1, bg_y1), (bg_x2, bg_y2), (0, 0, 0), -1)
+            cv2.putText(image_combined, label, (text_x, text_y), font, font_scale, color, thickness, cv2.LINE_AA)
 
         _, buffer = cv2.imencode('.jpg', image_combined)
         return Response(content=buffer.tobytes(), media_type="image/jpeg")
